@@ -11,6 +11,7 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private TMP_Text energyText;
     [SerializeField] private int MaxEnergy;                     // INT for Engegy Max i.e. 5
     [SerializeField] private int energyRechargeDuration;        // How long it takes for Energy to recharge (Sec or Min or Hrs) Mins in this version
+    [SerializeField] private AndroidNotificationHandler androidNotificationHandler;
 
     private int energy;                                         // Energy that will be used in code
 
@@ -72,6 +73,12 @@ public class MainMenu : MonoBehaviour
             DateTime energyReady = DateTime.Now.AddMinutes(energyRechargeDuration);
             // We save it (SetString) as a string bc it can't be saved in PlayerPrefs as a DateTIme
             PlayerPrefs.SetString(EnergyReadyKey, energyReady.ToString());
+
+            // This next set of #if/#endif will not compile unless its running a compiled Android Version
+#if UNITY_ANDROID
+            androidNotificationHandler.ScheduleNotification(energyReady);
+#endif
+
         }
         
         // LoadScene(1) if we have energy >= 1
