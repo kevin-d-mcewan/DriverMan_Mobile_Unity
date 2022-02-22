@@ -4,28 +4,49 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MainMenu : MonoBehaviour
 {
     [SerializeField] private TMP_Text highScoreText;
     [SerializeField] private TMP_Text energyText;
+    [SerializeField] private Button playButton;
     [SerializeField] private int MaxEnergy;                     // INT for Engegy Max i.e. 5
     [SerializeField] private int energyRechargeDuration;        // How long it takes for Energy to recharge (Sec or Min or Hrs) Mins in this version
     [SerializeField] private AndroidNotificationHandler androidNotificationHandler;
+    [SerializeField] private iOSNotificationHandler iosNotificationHandler;
 
     private int energy;                                         // Energy that will be used in code
 
     private const string EnergyKey = "Energy";                  // The key used for Player Pref so it can't be changed and less likely to miss spell string
     private const string EnergyReadyKey = "EnergyReady";        // The Key const for player pref of when the energy will be ready
 
-    // Will be ran anytime we load up the game or going back to the main menu
+
+
+    // This runs all code at start, crash and with fx call follow those rules as well so need both
     private void Start()
+    {
+        OnApplicationFocus(true);
+    }
+
+
+
+    // Will be ran anytime we load up the game or going back to the main menu
+    // "OnApplicationFocus" will be used so that if it gets minimized it still runs this function where it would not in start
+    private void OnApplicationFocus(bool hasFocus)
     {
         // We want this to happen everytime we go To MainMenu so Start() is best
         // Load from PlayerPrefs the HighScore, Then Update the HighScoreText text.
 
         // If you want to access information from another class; prepend the function or var your wanting to use with ClassName.Function/var name
         // i.e. "ScoreSystem.currentHighScore
+
+        // if minimized return nothing and do nothing
+        if (!hasFocus) { return; }
+
+        // If we are maximizing the app or restoring it we want to Cancel all the invokes in the script; If you want to call a specific one then switch it with
+        // CancelInvoke(("InvokeStringName"));
+        CancelInvoke();
 
         int highScore = PlayerPrefs.GetInt(ScoreSystem.HighScoreKey, 0);
 
@@ -47,11 +68,32 @@ public class MainMenu : MonoBehaviour
                 energy = MaxEnergy;
                 PlayerPrefs.SetInt(EnergyKey, energy);
             }
+            else
+            {
+                // Turn off Energy Button when not Ready
+                playButton.interactable = false;
+                Invoke(nameof(EnergyRecharged), (energyReady - DateTime.Now).Seconds);
+            }
 
         }
 
         energyText.text = $"Play: ({energy})";
     }
+
+
+
+    private void EnergyRecharged()
+    {
+        // Turns on the Play Button
+        playButton.interactable = true;
+        // Sets energy to Max
+        energy = MaxEnergy;
+        // updates energy amount in PlayerPrefs
+        PlayerPrefs.SetInt(EnergyKey, energy);
+        // updates text in the Play Button
+        energyText.text = $"Play ({energy})";
+    }
+
 
     
     // Play() is attach to OnClick() event in Inspector attached to TMP_Button Play. This fx is ran everytime play btn is pressed
@@ -77,6 +119,8 @@ public class MainMenu : MonoBehaviour
             // This next set of #if/#endif will not compile unless its running a compiled Android Version
 #if UNITY_ANDROID
             androidNotificationHandler.ScheduleNotification(energyReady);
+#elif UNITY_IOS
+            iosNotificationHandler.ScheduleNotification(energyRechargeDuration);
 #endif
 
         }
